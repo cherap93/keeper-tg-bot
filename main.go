@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"log"
-	"github.com/cherap93/keeper_the_bot/clients/telegram"
+	"github.com/cherap93/keeper-tg-bot/clients/telegram"
 )
 
 const (

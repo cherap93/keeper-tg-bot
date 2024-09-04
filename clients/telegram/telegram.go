@@ -8,7 +8,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/cherap93/keeper_the_bot/lib/er"
+	"github.com/cherap93/keeper-tg-bot/lib/er"
 )
 
 const (

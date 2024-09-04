@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cherap93/keeper_the_bot/lib/er"
-	"github.com/cherap93/keeper_the_bot/storage"
+	"github.com/cherap93/keeper-tg-bot/lib/er"
+	"github.com/cherap93/keeper-tg-bot/storage"
 )
 
 type Storage struct {

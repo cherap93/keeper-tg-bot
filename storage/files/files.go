@@ -2,8 +2,12 @@ package files
 
 import (
 	"encoding/gob"
+	"errors"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"time"
+	"fmt"
 
 	"github.com/cherap93/keeper-tg-bot/lib/er"
 	"github.com/cherap93/keeper-tg-bot/storage"
@@ -14,6 +18,8 @@ type Storage struct {
 }
 
 const defaultPerm = 0774 // Права на чтение и запись	
+
+var ErrNoSavedPages = errors.New("no saved pages")
 
 func New(basePath string) Storage {
 	return Storage{basePath: basePath}
@@ -53,6 +59,73 @@ func (s *Storage) PickRandom(userName string) (page *storage.Page, err error) {
 	defer func() { err = er.WrapIfErr("can't pick random page", err) }()
 
 	path := filepath.Join(s.basePath, userName)
+
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(files) == 0 {
+		return nil, ErrNoSavedPages
+	}
+
+	rand.NewSource(time.Now().UnixNano())
+	n := rand.Intn(len(files))
+
+	file := files[n]
+
+	return s.decodePage(filepath.Join(path, file.Name()))
+}
+
+func (s *Storage) Remove(page *storage.Page) error {
+	fileName, err := fileName(page)
+	if err != nil {
+		return er.Wrap("can't remove file", err)
+	}
+
+	path := filepath.Join(s.basePath, page.UserName, fileName)
+
+	if err := os.Remove(path); err != nil {
+		errMsg := fmt.Sprintf("can't remove file %s", path)
+		return er.Wrap(errMsg, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) IsExists(page *storage.Page) (bool, error) {
+	fileName, err := fileName(page)
+	if err != nil {
+		return false, er.Wrap("can't check if file exists", err)
+	}
+
+	path := filepath.Join(s.basePath, page.UserName, fileName)
+
+	switch _, err = os.Stat(path); {
+	case errors.Is(err, os.ErrNotExist):
+		return false, nil
+	case err != nil:
+		errMsg := fmt.Sprintf("can't check if file %s exists", path)
+		return false, er.Wrap(errMsg, err)
+	}
+
+	return true, nil
+}
+
+func (s Storage) decodePage(filePath string) (*storage.Page, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, er.Wrap("can't decode page", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	var p storage.Page
+
+	if err := gob.NewDecoder(f).Decode(&p); err != nil {
+		return nil, er.Wrap("can't decode page", err)
+	}
+
+	return &p, nil
 }
 
 func fileName(p *storage.Page) (string, error) {
